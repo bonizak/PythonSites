@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+
+    {% load static %}
+    <!-- Compressed CSS -->
+    <link rel="icon" type="image/x-icon" href='{% static "/backupgui/images/favicon.ico" %}'>
+
+    <title>File & Storage Sets</title>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
+
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'backupgui:index' %}">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">File & Storage Sets</li>
+        </ol>
+    </nav>
+
+<div class="accordion" id="accordionExample">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingOne">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                File Sets
+            </button>
+        </h2>
+        <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+            <div class="accordion-body">
+                <table class="scrollTable" width="100%" cellspacing="0" cellpadding="0" border="0">
+                    {% load humanize %}
+                    <thead class="fixedHeader">
+                    <tr>
+                        <th>File Set Name<br>
+                            Click to edit file set.</th>
+                        <th>Includes</th>
+                        <th>Excludes</th>
+                        <th>Recursive</th>
+                        <th>Compress</th>
+                        <th>Estimated Size</th>
+                    </tr>
+                    </thead>
+                    <tbody class="scrollContent">
+                    {% if filesets_list %}
+                    {% for fiset in filesets_list %}
+                    <tr>
+                        <td>
+                            <span data-tooltip aria-haspopup="true" class="has-tip top" data-click-open="false"
+                                  data-disable-hover="false" tabindex="2" title="File Set ID: {{ fiset.ID }}">
+                                <a href="{% url 'backupgui:singleFileset' fiset.ID %}">{{ fiset.FileSetName }}</a>
+                            </span>
+                        </td>
+                        <td>{{ fiset.Includes }}</td>
+                        <td>{{ fiset.Excludes }}</td>
+                        <td align="center">{{ fiset.Compress }}</td>
+                        <td align="center">{{ fiset.Recursive }}</td>
+                        <td align="right">{{ fiset.EstimatedSize|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td><p>No File Sets are available.</p></td>
+                    </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingtwo">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                Storage Sets
+            </button>
+        </h2>
+        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingtwo" data-bs-parent="#accordionExample">
+            <div class="accordion-body">
+                <table class="scrollTable" width="100%" cellspacing="0" cellpadding="0" border="0">
+                    {% load humanize %}
+                    <thead class="fixedHeader">
+                    <tr>
+                        <th>Storage Set Name<br>
+                            Click to edit storage set.</th>
+                        <th>Storage Path</th>
+                        <th>Storage Path Device</th>
+                    </tr>
+                    </thead>
+                    <tbody class="scrollContent">
+                    {% if storagesets_list %}
+                    {% for storageset in storagesets_list %}
+                    <tr>
+                        <td>
+                            <span data-tooltip aria-haspopup="true" class="has-tip top" data-click-open="false"
+                                  data-disable-hover="false" tabindex="2" title="Storage Set ID: {{ storageset.ID }}">
+                                <a href="{% url 'backupgui:singleStorageset' storageset.ID %}">{{ storageset.StorageSetName }}</a>
+                            </span>
+                        </td>
+                        <td>{{ storageset.StoragePath }}</td>
+                        <td>{{ storageset.DevicePathID }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td><p>No Storage Sets are available.</p></td>
+                    </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <a class="collapse-item" href="{% url 'backupgui:index' %}">Return Home</a>
+</body>
+</html>
