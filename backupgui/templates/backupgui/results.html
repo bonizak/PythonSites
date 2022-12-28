@@ -66,10 +66,13 @@
     {% endif %}
 
     {% if updated_loglevel %}
-
             <p>Logging level now set to {{ updated_loglevel }}.</p>
-
         <a href="{% url 'backupgui:utilities' %}">Return to Log Level</a><br>
+    {% endif %}
+
+    {% if selected_rootpath %}
+            <p>Selected Root Path {{ selected_rootpath }}.</p>
+        <a href="{% url 'backupgui:rebaseSets' %}">Return to Rebase</a><br>
     {% endif %}
 
 

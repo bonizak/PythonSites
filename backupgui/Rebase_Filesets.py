@@ -12,7 +12,7 @@ class RebaseFileSets(db_services, os_services):
     """
         This class contains the methods to collect and create a list of all directories, to the depth of directories
         as provided, under the supplied list of file systems' roots.
-        It will then update a table of Base file path 'INCLUDES',.
+        It will then update a table of Base file path 'INCLUDES'.
 
     Args
         Required: none
@@ -44,7 +44,7 @@ class RebaseFileSets(db_services, os_services):
             for key in RootPathsIn[index]:
                 if key == "RootPath":
                     rpPath = RootPathsIn[index][key]
-                elif key == "MaxDepth":
+                elif key == "Max_Depth":
                     rpDepth = RootPathsIn[index][key]
                 elif key == "FilesFolders":
                     rpFileFolder = RootPathsIn[index][key]
@@ -120,7 +120,7 @@ class RebaseFileSets(db_services, os_services):
                                                  "Excludes": "NA", "Compress": "YES", "Recursive": "No"})
 
         if len(RootPathRows) == 0:
-            print(f' Empty RootPath Scan Returned. Verify MaxDepth values in RootPath Sheet of workbook.'
+            print(f' Empty RootPath Scan Returned. Verify Max_Depth values in RootPath Sheet of workbook.'
                   f' \n Exiting!')
 
         sorted_RootPathRows = sorted(RootPathRows, key=lambda I: I["Includes"])
@@ -181,7 +181,7 @@ class RebaseFileSets(db_services, os_services):
         RootPaths = []
         try:
             cur = dbConn.cursor()
-            sql = f'SELECT "rp"."ID", "rp"."Rootpath", "rp"."MaxDepth",  "rp"."FilesFolders" ' \
+            sql = f'SELECT "rp"."ID", "rp"."Rootpath", "rp"."Max_Depth",  "rp"."FilesFolders" ' \
                   f'FROM "public"."RootPaths" "rp" ' \
                   f'ORDER BY "rp"."ID" ASC'
 

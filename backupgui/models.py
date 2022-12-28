@@ -1,7 +1,11 @@
+import psutil
+from django.db import connection
 from django.db import models
 
 
 class StorageSets(models.Model):
+    objects = None
+
     ID = models.AutoField(primary_key=True)
     StorageSetName = models.CharField(max_length=48)
     StoragePath = models.CharField(max_length=1024)
@@ -35,6 +39,7 @@ class StorageSets(models.Model):
 
 class FileSets(models.Model):
     objects = None
+
     ID = models.AutoField(primary_key=True)
     FileSetName = models.CharField(max_length=48, editable=True)
     Includes = models.CharField(max_length=256)
@@ -94,6 +99,8 @@ class FileSets(models.Model):
 
 
 class Frequencies(models.Model):
+    objects = None
+
     ID = models.AutoField(primary_key=True)
     Frequency = models.CharField(max_length=48)
 
@@ -110,11 +117,21 @@ class Frequencies(models.Model):
             frequencySets.append(b)
         return frequencySets
 
-    def __str__(self):
-        return f'{self.Frequency}'
+    @staticmethod
+    def load_frequencies():
+        if len(Frequencies.objects.all()) == 0:
+            for freq in "Daily", "Weekly", "Monthly", "Yearly", "Archive", "OnDemand":
+                new_freq = Frequencies(
+                    Frequency=freq)
+                try:
+                    new_freq.save()
+                except Exception as ie:
+                    return -1, ie
 
 
 class DeviceTypes(models.Model):
+    objects = None
+
     ID = models.AutoField(primary_key=True)
     DeviceType = models.CharField(max_length=24)
 
@@ -129,31 +146,104 @@ class DeviceTypes(models.Model):
             devices.append(d)
         return devices
 
+    @staticmethod
+    def load_devices():
+        if len(DeviceTypes.objects.all()) == 0:
+            for device in "DISK", "USB-Stick", "FILE", "CDROM", "EXTERNAL_DISK":
+                new_device = DeviceTypes(
+                    DeviceType=device)
+                try:
+                    new_device.save()
+                except Exception as ie:
+                    return -1, ie
+
     def __str__(self):
         return f'{self.DeviceType}'
 
 
-class LogLevel(models.Model):
+class RootPaths(models.Model):
+    objects = None
+
     ID = models.AutoField(primary_key=True)
-    Loglevel = models.CharField(max_length=12,
-                                name="Loglevel")
+    Root_Path = models.CharField(max_length=256)
+    Max_Depth = models.SmallIntegerField(default=1)
+    IsFolder = models.BooleanField(default=False)
     Active = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'loglevel'
+        db_table = 'rootpaths'
         ordering = ['ID']
 
     @staticmethod
-    def logLevel():
-        levels = []
-        for ol in LogLevel.objects.all():
-            levels.append(ol)
-        return levels
+    def rootpaths():
+        root_paths = []
+        for rp in RootPaths.objects.all():
+            root_paths.append(rp)
+        return root_paths
 
     @staticmethod
-    def llChoices():
+    def delete_all_rootpaths():
+        RootPaths.objects.all().delete()
+
+    @staticmethod
+    def reset_seq():
+        with connection.cursor() as cursor:
+            cursor.execute(f'ALTER SEQUENCE public."rootpaths_ID_seq" RESTART 1')
+
+    @staticmethod
+    def insert_rootpath(rootpath):
+        newRootPath = RootPaths(
+            Root_Path=rootpath["Root_Path"],
+            Max_Depth=rootpath["Max_Depth"],
+            IsFolder=rootpath["IsFolder"],
+            Active=rootpath["Active"]
+        )
+        try:
+            newRootPath.save()
+        except Exception as ie:
+            return -1, ie
+
+    @staticmethod
+    def update_rootpath(rootpathID, rootpath):
+        RootPaths.objects.filter(pk=rootpathID).update(
+            Root_Path=rootpath["Root_Path"],
+            Max_Depth=rootpath["Max_Depth"],
+            IsFolder=rootpath["IsFolder"],
+            Active=rootpath["Active"]
+        )
+
+    @staticmethod
+    def load_rootpaths():
         choices = []
-        query_set = LogLevel.objects.values('Loglevel')
+        partitions = psutil.disk_partitions()
+
+        RootPaths.objects.all().delete()
+        RootPaths.reset_seq()
+
+        query_set = RootPaths.objects.values("Root_Path")
+        for index in range(len(query_set)):
+            for key in query_set[index]:
+                choices.append((f'{index + 1}', f'{query_set[index][key]}'))
+
+        for index in range(len(partitions)):
+            act = False
+            if partitions[index][1] not in choices and "snap" not in partitions[index][1]:
+                if "DevApps" in f'{partitions[index][1]}':
+                    act = True
+                    new_rootpath = RootPaths(
+                        Root_Path=f'{partitions[index][1]}',
+                        Max_Depth=1,
+                        IsFolder=True,
+                        Active=act)
+                    try:
+                        new_rootpath.save()
+                    except Exception as ie:
+                        return -1, ie
+
+    @staticmethod
+    def rpChoices():
+        choices = []
+        query_set = RootPaths.objects.values("Root_Path")
         for index in range(len(query_set)):
             for key in query_set[index]:
                 choices.append((f'{index + 1}', f'{query_set[index][key]}'))
@@ -162,22 +252,88 @@ class LogLevel(models.Model):
     @staticmethod
     def active_choice():
         achoice = []
-        query_set = LogLevel.objects.filter(Active=1)
+        query_set = RootPaths.objects.filter(Active=1)
+        if len(query_set) > 0:
+            for index in range(len(query_set)):
+                achoice.append(f'{query_set[index]}')
+            return achoice[0]
+        else:
+            return ""
+
+    @staticmethod
+    def selectRootPath(rootpath_id, rootpathSet):
+        RootPaths.objects.all().update(Active=False)
+        RootPaths.objects.filter(pk=rootpath_id).update(Active=True)
+
+    def __str__(self):
+        return f'{self.Root_Path}'
+
+
+class LoggingLevels(models.Model):
+    objects = None
+
+    ID = models.AutoField(primary_key=True)
+    LogLevel = models.CharField(max_length=12)
+    Active = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'logginglevels'
+        ordering = ['ID']
+
+    @staticmethod
+    def logLevels():
+        levels = []
+        for ol in LoggingLevels.objects.all():
+            levels.append(ol)
+        return levels
+
+    @staticmethod
+    def llChoices():
+        choices = []
+        query_set = LoggingLevels.objects.values("LogLevel")
         for index in range(len(query_set)):
-            achoice.append(f'{query_set[index]}')
-        return achoice[0]
+            for key in query_set[index]:
+                choices.append((f'{index + 1}', f'{query_set[index][key]}'))
+        return choices
+
+    @staticmethod
+    def active_choice():
+        achoice = []
+        query_set = LoggingLevels.objects.filter(Active=1)
+        if len(query_set) > 0:
+            for index in range(len(query_set)):
+                achoice.append(f'{query_set[index]}')
+            return achoice[0]
+        else:
+            return ""
+
+    @staticmethod
+    def load_levels():
+        if len(LoggingLevels.objects.all()) == 0:
+            for lvl in "CRITICAL", "ERROR", "WARN", "INFO", "DEBUG":
+                act = False
+                if lvl == "WARN":
+                    act = True
+                new_level = LoggingLevels(
+                    LogLevel=lvl,
+                    Active=act)
+                try:
+                    new_level.save()
+                except Exception as ie:
+                    return -1, ie
 
     @staticmethod
     def update_loglevel(loglevel_id):
-        LogLevel.objects.all().update(Active=False)
-        LogLevel.objects.filter(pk=loglevel_id).update(
-            Active=True)
+        LoggingLevels.objects.all().update(Active=False)
+        LoggingLevels.objects.filter(pk=loglevel_id).update(Active=True)
 
     def __str__(self):
-        return f'{self.Loglevel}'
+        return f'{self.LogLevel}'
 
 
 class BaseFileSets(models.Model):
+    objects = None
+
     ID = models.AutoField(primary_key=True)
     FileSetName = models.CharField(max_length=48)
     Includes = models.CharField(max_length=256)
@@ -224,6 +380,8 @@ class BaseFileSets(models.Model):
 
 
 class BackupSets(models.Model):
+    objects = None
+
     ID = models.AutoField(primary_key=True)
     BackupSetName = models.CharField(max_length=48)
     StorageSetID = models.ForeignKey('storagesets', on_delete=models.CASCADE)

@@ -4,8 +4,8 @@ from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.template import loader
 
-from .forms import LogLevelForm
-from .models import BackupSets, Frequencies, StorageSets, FileSets, BaseFileSets, DeviceTypes, LogLevel
+from .forms import RootPathsForm, LogLevelForm
+from .models import BackupSets, Frequencies, StorageSets, FileSets, BaseFileSets, DeviceTypes, RootPaths, LoggingLevels
 
 
 def testindex(request):
@@ -239,7 +239,10 @@ def addBaseFileset(request):
 
 
 def utilities(request):
-    ll_choice = LogLevel.active_choice()
+    LoggingLevels.load_levels()
+    DeviceTypes.load_devices()
+    Frequencies.load_frequencies()
+    ll_choice = LoggingLevels.active_choice()
     loglevel_form = LogLevelForm()
     device_list = DeviceTypes.deviceType()
     frequency_list = Frequencies.frequencySets()
@@ -247,22 +250,42 @@ def utilities(request):
     context = {'frequency_list': frequency_list,
                'device_list': device_list,
                'loglevel_form': loglevel_form,
-               'll_choice': ll_choice}
+               'll_choice': ll_choice
+               }
 
     return HttpResponse(template.render(context, request))
 
 
 def updateLogLevel(request):
-    query_set = get_object_or_404(LogLevel, pk=request.POST["LOGLEVEL_CHOICES"])
-    LogLevel.update_loglevel(request.POST["LOGLEVEL_CHOICES"])
+    query_set = get_object_or_404(LoggingLevels, pk=request.POST["LOGLEVEL_CHOICES"])
+    LoggingLevels.update_loglevel(request.POST["LOGLEVEL_CHOICES"])
     context = {'updated_loglevel': query_set}
     return render(request, 'backupgui/results.html', context)
 
 
-def rebaseSets(request):
-    context = {'rebaseSets': ""}
-    return render(request, 'backupgui/rebaseSets.html', context)
+def rootpaths(request):
+    RootPaths.load_rootpaths()
+    rp_choice = RootPaths.active_choice()
+    rootpath_form = RootPathsForm()
+    template = loader.get_template('backupgui/rootpaths.html')
+    context = {'rootpath_form': rootpath_form,
+               'rp_choice': rp_choice}
+    return HttpResponse(template.render(context, request))
 
 
-def reloadBaseFileSets(request):
-    pass
+def updateRootPath(request, rootpath_id):
+    update_set = {}
+    if 'cancel' in request.POST:
+        context = {'emptySet': "Root Path Update Cancelled"}
+        return render(request, 'backupgui/results.html', context)
+    else:
+        update_set["ID"] = rootpath_id
+        update_set["Root_Path"] = request.POST['Root_Path']
+        update_set["Max_Depth"] = request.POST['Max_Depth']
+        update_set["IsFolder"] = request.POST[True]
+        update_set["Active"] = request.POST[True]
+        rc = RootPaths.update_rootpath(rootpath_id, update_set)
+
+        print(f"Return from update {rc}")
+        context = {'rootpathset': update_set, 'return_code': rc}
+        return render(request, 'backupgui/results.html', context)
